@@ -1,6 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-
+import 'image_preview_screen.dart';
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
 
@@ -54,29 +54,29 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  Future<void> _takePicture() async {
-    if (_controller == null || !_controller!.value.isInitialized) {
-      return;
-    }
-
-    try {
-      final image = await _controller!.takePicture();
-
-      if (!mounted) return;
-
-      debugPrint('Image captured: ${image.path}');
-
-      // We will use this image in the next step.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Wall image captured!'),
-        ),
-      );
-    } catch (e) {
-      debugPrint('Capture error: $e');
-    }
+ Future<void> _takePicture() async {
+  if (_controller == null ||
+      !_controller!.value.isInitialized) {
+    return;
   }
 
+  try {
+    final image = await _controller!.takePicture();
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImagePreviewScreen(
+          imagePath: image.path,
+        ),
+      ),
+    );
+  } catch (e) {
+    debugPrint('Capture error: $e');
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
