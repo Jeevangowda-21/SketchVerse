@@ -1,13 +1,13 @@
-import 'dart:io';
-
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class DesignScreen extends StatelessWidget {
-  final String imagePath;
+  final XFile image;
 
   const DesignScreen({
     super.key,
-    required this.imagePath,
+    required this.image,
   });
 
   @override
@@ -19,11 +19,45 @@ class DesignScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: Image.file(
-              File(imagePath),
-              width: double.infinity,
-              fit: BoxFit.contain,
-            ),
+            child: kIsWeb
+                ? Image.network(
+                    image.path,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Text(
+                          'Unable to display wall image',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      );
+                    },
+                  )
+                : FutureBuilder<Uint8List>(
+                    future: image.readAsBytes(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return const Center(
+                          child: Text(
+                            'Unable to load wall image',
+                          ),
+                        );
+                      }
+
+                      return Image.memory(
+                        snapshot.data!,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                      );
+                    },
+                  ),
           ),
 
           const Padding(
