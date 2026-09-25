@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 
 import 'image_preview_screen.dart';
 
@@ -38,7 +39,6 @@ class _CameraScreenState extends State<CameraScreen> {
         return;
       }
 
-      // Use the first available camera.
       final camera = cameras.first;
 
       final controller = CameraController(
@@ -59,8 +59,8 @@ class _CameraScreenState extends State<CameraScreen> {
         _isInitialized = true;
       });
     } on CameraException catch (e) {
-      debugPrint('CameraException: ${e.code}');
-      debugPrint('Camera error: ${e.description}');
+      debugPrint('Camera error: ${e.code}');
+      debugPrint('Description: ${e.description}');
 
       if (!mounted) return;
 
@@ -84,6 +84,10 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  // ---------------------------------------------------------
+  // CAPTURE + SAVE IMAGE
+  // ---------------------------------------------------------
+
   Future<void> _takePicture() async {
     if (_controller == null ||
         !_controller!.value.isInitialized ||
@@ -96,10 +100,57 @@ class _CameraScreenState extends State<CameraScreen> {
     });
 
     try {
+      // Capture image
       final XFile image = await _controller!.takePicture();
+
+      debugPrint('Image captured: ${image.path}');
+
+      // Save image automatically to Gallery/Photos
+      try {
+        final bytes = await image.readAsBytes();
+
+        final hasPermission = await Gal.hasAccess();
+
+        if (!hasPermission) {
+          await Gal.requestAccess();
+        }
+
+        await Gal.putImageBytes(
+          bytes,
+          album: 'AI Interior Designer',
+          name: 'wall_${DateTime.now().millisecondsSinceEpoch}',
+        );
+
+        debugPrint('Image saved successfully!');
+      } on GalException catch (e) {
+        debugPrint('Gallery error: ${e.type.message}');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Image captured, but could not save: ${e.type.message}',
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Save error: $e');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Image captured, but could not save to gallery.',
+              ),
+            ),
+          );
+        }
+      }
 
       if (!mounted) return;
 
+      // Go to preview screen
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -109,8 +160,8 @@ class _CameraScreenState extends State<CameraScreen> {
         ),
       );
     } on CameraException catch (e) {
-      debugPrint('Camera capture error: ${e.code}');
-      debugPrint('Camera capture description: ${e.description}');
+      debugPrint('Capture error: ${e.code}');
+      debugPrint('Description: ${e.description}');
 
       if (!mounted) return;
 
@@ -195,7 +246,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
 
-                // Camera guide
+                // Wall guide
                 Positioned(
                   left: 35,
                   right: 35,
